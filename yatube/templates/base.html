@@ -1,0 +1,25 @@
+<head>
+{% load static %}
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="ru">
+      <meta charset="UTF-8">
+      <title> {% block title %} {% endblock %}</title>
+      <link rel="icon" href="fav.ico" type="image">
+  <body>
+  <article>
+    <header>
+      {% include 'includes/header.html' %}
+    </header>
+    <main>
+      {% block content %}
+        Контент не подвезли :(
+      {% endblock %}
+    </main>
+    <footer>
+      {% include 'includes/footer.html' %}
+    </footer>
+  </article>
+  </body>
+</html>
+</head>
