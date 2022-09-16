@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Post, Comment
+from .models import Comment, Post
 
 
 class PostForm(forms.ModelForm):
@@ -19,6 +19,7 @@ def clean_text(self):
 
 
 class CommentForm(forms.ModelForm):
+    """ Форма комментария."""
     class Meta:
         model = Comment
         fields = ('text',)

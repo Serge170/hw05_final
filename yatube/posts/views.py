@@ -22,7 +22,7 @@ def group_posts(request, slug):
     return render(request, 'posts/group_list.html', context)
 
 
-@cache_page(5, key_prefix='index_page')
+@cache_page(20, key_prefix='index_page')
 def index(request):
     """Главная страница."""
     posts = Post.objects.all()
@@ -95,30 +95,27 @@ def post_edit(request, post_id):
 
 
 def profile(request, username):
-    """Профиль автора."""
-    template = 'posts/profile.html'
-    user = get_object_or_404(User, username=username)
-    following = Follow.objects.filter(
-        author__following__user=request.user).exists()
-    post_count = Post.objects.count()
-    Post.objects.filter(
-        author__following__user=user).exists()  
-    profile_list = user.posts.select_related('author', 'group')
-    paginator = Paginator(profile_list, NUMBER_OF_POSTS)
+    """ Профиль автора."""
+    author = get_object_or_404(User, username=username)
+    post_list = Post.objects.filter(author=author)
+    paginator = Paginator(post_list, NUMBER_OF_POSTS)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    context = {
-        'author': user,
-        'page_obj': page_obj,
-        'post_count': post_count,
-        'following': following,
-    }
-    return render(request, template, context)
+    following = False
+    if request.user.is_authenticated:
+        following = request.user.follower.filter(
+            author=User.objects.get(username=author)).count()
+    context = {'author': author,
+               'page_obj': page_obj,
+               'posts_count': post_list.count,
+               'following': following,
+               }
+    return render(request, 'posts/profile.html', context)
+
 
 @login_required
 def follow_index(request):
-    # информация о текущем пользователе доступна в переменной request.user
-    # ...
+    """ Информация о текущем пользователе."""
     user = request.user
     author_pk_list = user.follower.all().values_list('author', flat=True)
     post_list = Post.objects.filter(author__in=author_pk_list)
@@ -133,7 +130,7 @@ def follow_index(request):
 
 @login_required
 def profile_follow(request, username):
-    # Подписаться на автора
+    """ Подписаться на автора."""
     user = request.user
     author = get_object_or_404(User, username=username)
     if user != author:
@@ -143,7 +140,7 @@ def profile_follow(request, username):
 
 @login_required
 def profile_unfollow(request, username):
-    # Дизлайк, отписка
+    """ Дизлайк, отписка."""
     user = request.user
     author = get_object_or_404(User, username=username)
     follow_to_delete = get_object_or_404(

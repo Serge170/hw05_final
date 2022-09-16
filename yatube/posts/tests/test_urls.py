@@ -1,4 +1,5 @@
 from http import HTTPStatus
+
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from posts.models import Group, Post, User
@@ -46,7 +47,7 @@ class PostURLTests(TestCase):
         templates_url_all = {
             '/': ('posts/index', HTTPStatus.OK),
             '/group/test-group/': ('posts/group_list', HTTPStatus.OK),
-            '/profile/user/': ('posts/profile', HTTPStatus.OK),
+            '/profile/author/': ('posts/profile', HTTPStatus.OK),
             '/posts/1/': ('posts/post_detail', HTTPStatus.OK),
             '/unixisting_page/': ('', HTTPStatus.NOT_FOUND),
         }

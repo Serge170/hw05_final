@@ -13,6 +13,7 @@ NUMBER_OF_POSTS: int = 10
 
 
 class PostURLTests(TestCase):
+    """ Создаем тестовую среду"""
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -44,9 +45,9 @@ class PostURLTests(TestCase):
         self.author.force_login(PostURLTests.user)
         cache.clear()
 
-    # Проверяем используемые шаблоны
     def test_pages_guest_client_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
+        # Проверяем используемые шаблоны
         # Собираем в словарь пары "имя_html_шаблона: reverse(name)"
         templates_pages_names = {
             reverse('posts:index'): 'posts/index.html',
@@ -65,9 +66,9 @@ class PostURLTests(TestCase):
                 response = self.guest_client.get(reverse_name)
                 self.assertTemplateUsed(response, address)
 
-# Проверяем используемые шаблоны
     def test_pages_author_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
+        # Проверяем используемые шаблоны
         # Собираем в словарь пары "имя_html_шаблона: reverse(name)"
         templates_pages_names = {
             reverse('posts:post_edit', kwargs={'post_id': 1}):
@@ -205,25 +206,70 @@ class PostURLTests(TestCase):
     def test_cache_index(self):
         """Главная страница работает с 20 секундным кешем."""
         self.authorized_user.get(
-            reverse('posts:index')
-        )
+            reverse('posts:index'))
         Post.objects.create(
             author=self.user,
             text='текст 1',
             group=self.group)
         response1 = self.authorized_user.get(
-            reverse('posts:index')
-        )
+            reverse('posts:index'))
         Post.objects.all().delete()
         response2 = self.authorized_user.get(
-            reverse('posts:index')
-        )
+            reverse('posts:index'))
         self.assertEqual(response1.content, response2.content)
         cache.clear()
         response3 = self.authorized_user.get(
-            reverse('posts:index')
-        )
+            reverse('posts:index'))
         self.assertNotEqual(response1.content, response3.content)
+
+    def test_authorized_user_follow(self):
+        """Тестирование подписки на автора"""
+        self.author = User.objects.create(username='NoNameAuthor')
+        follow_count_before = self.user.follower.count()
+        self.authorized_user.get(
+            reverse('posts:profile_follow', kwargs={'username': self.author})
+        )
+        self.assertEqual(self.user.follower.count(), follow_count_before + 1)
+        self.authorized_user.get(
+            reverse('posts:profile_unfollow', kwargs={'username': self.author})
+        )
+
+    def test_authorized_user_unfollow(self):
+        """Тестирование отписки на автора"""
+        self.author = User.objects.create(username='NoNameAuthor')
+        follow_count_before = self.user.follower.count()
+        self.authorized_user.get(
+            reverse('posts:profile_follow', kwargs={'username': self.author})
+        )
+        self.authorized_user.get(
+            reverse('posts:profile_unfollow', kwargs={'username': self.author})
+        )
+        self.assertEqual(self.user.follower.count(), follow_count_before)
+
+    def test_follow_page(self):
+        """Проверка, что пост появляется у того, кто на него подписан.
+        И не появляется у тех, кто не подписан"""
+        self.author = User.objects.create(username='NoNameAuthor')
+        # self.another_user = User.objects.create(username='AnotherUser')
+        self.authorized_user.get(
+            reverse('posts:profile_follow', kwargs={'username': self.author})
+        )
+        self.follow_post = Post.objects.create(
+            author=self.author,
+            text='Тестовый текст подписки',
+            group=self.group,
+        )
+        response = self.authorized_user.get(reverse('posts:follow_index'))
+        self.assertEqual(response.context.get(
+            'page_obj').object_list[0].text, 'Тестовый текст подписки'
+        )
+        self.authorized_user.get(
+            reverse('posts:profile_unfollow', kwargs={'username': self.author})
+        )
+        response = self.authorized_user.get(reverse('posts:follow_index'))
+        self.assertEqual(
+            response.context.get('page_obj').object_list.count(), 0)
+
 
 class PaginatorViewsTest(TestCase):
     """Проверка Paginator."""
