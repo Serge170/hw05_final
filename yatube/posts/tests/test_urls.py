@@ -78,4 +78,3 @@ class PostURLTests(TestCase):
             with self.subTest(address=address):
                 response = self.authorized_user.get(address)
                 self.assertEqual(response.status_code, status_code)
-
