@@ -32,6 +32,8 @@ urlpatterns = [
 
 
 handler404 = 'core.views.page_not_found'
+handler500 = 'core.views.server_error'
+handler403 = 'core.views.permission_denied'
 # Переопределяем Хендлер, передаем имя собственной view-функции.
 
 if settings.DEBUG:
