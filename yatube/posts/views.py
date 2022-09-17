@@ -38,7 +38,7 @@ def post_detail(request, post_id):
     template = 'posts/post_detail.html'
     post = get_object_or_404(Post, pk=post_id)
     form = CommentForm()
-    comments = Comment.objects.filter(post=post)
+    comments = post.comments.all()
     context = {
         'posts': post,
         'form': form,
@@ -97,10 +97,8 @@ def post_edit(request, post_id):
 def profile(request, username):
     """ Профиль автора."""
     author = get_object_or_404(User, username=username)
-    post_list = Post.objects.filter(author=author)
-    paginator = Paginator(post_list, NUMBER_OF_POSTS)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    post_list = author.posts.select_related('group')
+    page_obj = get_page(request, post_list)
     following = False
     if request.user.is_authenticated:
         following = request.user.follower.filter(
@@ -117,11 +115,8 @@ def profile(request, username):
 def follow_index(request):
     """ Информация о текущем пользователе."""
     user = request.user
-    author_pk_list = user.follower.all().values_list('author', flat=True)
-    post_list = Post.objects.filter(author__in=author_pk_list)
-    paginator = Paginator(post_list, NUMBER_OF_POSTS)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    post_list = Post.objects.filter(author__following__user=request.user)
+    page_obj = get_page(request, post_list)
     context = {'username': user,
                'page_obj': page_obj,
                }

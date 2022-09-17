@@ -1,13 +1,19 @@
+import tempfile
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from ..models import Group, Post
 
 User = get_user_model()
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostCreateForm(TestCase):
     """Проверка формы со странице создания поста."""
     @classmethod
@@ -36,7 +42,6 @@ class PostCreateForm(TestCase):
             title='Тестовая группа',
             slug='test-group',
             description='Тестовое описание',
-            id=1
         )
 
         # Создаем пост от имени пользователя
@@ -44,7 +49,6 @@ class PostCreateForm(TestCase):
             author=cls.user,
             text='Тестовый пост',
             group=cls.group,
-            id=1,
             image=cls.uploaded,
         )
 
@@ -59,14 +63,14 @@ class PostCreateForm(TestCase):
         """Форма Post создает запись."""
         # Подсчет количества записей в Post
         posts_count = Post.objects.count()
-        last_post = Post.objects.all()[0]
+        last_post = Post.objects.all().first()
         new_post = Post.objects.filter(
             text='Текст поста из формы',
-            group=self.group.id,
+            group=self.group.pk,
         )
         form_data = {
             'text': 'Текст поста из формы',
-            'group': self.group.id,
+            'group': self.group.pk,
             'author': self.user.username,
             'image': self.post.image,
         }
@@ -81,7 +85,7 @@ class PostCreateForm(TestCase):
         # Проверяем, что создалась запись с заданным слагом
         self.assertTrue(new_post.exists())
         self.assertEqual(
-            Post.objects.all().order_by('created')[0],
+            Post.objects.all().order_by('created').first(),
             last_post
         )
         # Проверяем, сработал ли редирект
@@ -103,18 +107,18 @@ class PostCreateForm(TestCase):
         """Запись успешно редактируется."""
         form_data = {
             'text': 'Текст поста из формы',
-            'group': self.group.id
+            'group': self.group.pk
         }
         self.authorized_user.post(
             reverse(
                 'posts:post_edit',
-                args=[self.post.id]
+                args=[self.post.pk]
             ),
             data=form_data,
             follow=False
         )
         self.assertIsNot(
-            Post.objects.get(id=self.post.id).text,
+            Post.objects.get(pk=self.post.pk).text,
             form_data['text'])
 
         old_group_response = self.authorized_user.get(

@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import Group, Post
+from ..models import LENGTH_TEXT, Group, Post
 
 User = get_user_model()
 
@@ -27,7 +27,7 @@ class PostModelTest(TestCase):
         group = PostModelTest.group
         group_title = group.title
         post = PostModelTest.post
-        post_title = post.text[:15]
+        post_title = post.text[:LENGTH_TEXT]
         expected_str = {
             group: group_title,
             post: post_title

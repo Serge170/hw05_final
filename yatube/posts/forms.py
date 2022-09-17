@@ -13,8 +13,8 @@ class PostForm(forms.ModelForm):
 
 def clean_text(self):
     text = self.cleaned_date['text']
-    if len(text) > 500:
-        raise ValidationError('Длина текста больше 100 символов')
+    if len(text) > 300:
+        raise ValidationError('Длина текста больше 300 символов')
     return text
 
 
@@ -23,9 +23,3 @@ class CommentForm(forms.ModelForm):
     class Meta:
         model = Comment
         fields = ('text',)
-        labels = {
-            'text': 'Текст',
-        }
-        help_texts = {
-            'text': 'Текст нового комментария',
-        }

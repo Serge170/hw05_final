@@ -250,7 +250,6 @@ class PostURLTests(TestCase):
         """Проверка, что пост появляется у того, кто на него подписан.
         И не появляется у тех, кто не подписан"""
         self.author = User.objects.create(username='NoNameAuthor')
-        # self.another_user = User.objects.create(username='AnotherUser')
         self.authorized_user.get(
             reverse('posts:profile_follow', kwargs={'username': self.author})
         )

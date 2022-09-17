@@ -10,12 +10,17 @@ LENGTH_TEXT = 15
 
 class Group (models.Model):
     """ Страница со списком постов."""
-    title = models.CharField(max_length=200, verbose_name='заголовок',)
+    title = models.CharField(max_length=200, verbose_name='Заголовок',)
     slug = models.SlugField(max_length=200, unique=True,)
-    description = models.TextField(verbose_name='описание группы',)
+    description = models.TextField(verbose_name='Описание группы',)
 
     def __str__(self):
         return self.title
+
+    class Meta:
+        """Переопределение Meta."""
+        verbose_name = 'Группы'
+        verbose_name_plural = 'Группы'
 
 
 class Post(CreatedModel, models.Model):
@@ -23,9 +28,9 @@ class Post(CreatedModel, models.Model):
     text = models.TextField(
         verbose_name='Текст поста',
         help_text='Напишите содержимое поста',
-        max_length=5000, )
+        max_length=300, )
     author = models.ForeignKey(
-        User,
+        User,   
         on_delete=models.CASCADE,
         verbose_name='Автор поста',
         related_name='posts')
@@ -47,6 +52,8 @@ class Post(CreatedModel, models.Model):
 
     class Meta:
         """Переопределение Meta."""
+        verbose_name = 'Посты авторов'
+        verbose_name_plural = 'Посты авторов'
         ordering = ['-created']
 
     def __str__(self):
@@ -98,13 +105,12 @@ class Follow(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Автор'
+        related_name='following'
     )
 
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
-        default_related_name = "following"
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'author'),
