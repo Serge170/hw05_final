@@ -3,7 +3,7 @@ from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from posts.models import Follow, Group, Post, User
+from posts.models import Group, Post, User
 
 from ..models import Group, Post
 
@@ -60,7 +60,8 @@ class PostURLTests(TestCase):
     def test_urls_author(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_url_author = {
-            f'/posts/{self.post.id}/edit/': ('posts/create_post.html', HTTPStatus.OK),
+            f'/posts/{self.post.id}/edit/':
+            ('posts/create_post.html', HTTPStatus.OK),
         }
 
         for address, (template, status_code) in templates_url_author.items():
@@ -72,7 +73,7 @@ class PostURLTests(TestCase):
         """URL-адрес использует соответствующий шаблон."""
         templates_url = {
             '/create/': ('posts/create_post.html', HTTPStatus.OK),
-            '/follow/': ('posts/follow', HTTPStatus.OK),    
+            '/follow/': ('posts/follow', HTTPStatus.OK),
         }
 
         for address, (template, status_code) in templates_url.items():

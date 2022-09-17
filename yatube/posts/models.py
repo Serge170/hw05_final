@@ -30,7 +30,7 @@ class Post(CreatedModel, models.Model):
         help_text='Напишите содержимое поста',
         max_length=300, )
     author = models.ForeignKey(
-        User,   
+        User,
         on_delete=models.CASCADE,
         verbose_name='Автор поста',
         related_name='posts')
