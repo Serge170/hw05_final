@@ -16,6 +16,7 @@ NUMBER_OF_POSTS: int = 10
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PaginatorViewsTest(TestCase):
     """Проверка Paginator."""
