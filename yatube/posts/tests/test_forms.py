@@ -40,7 +40,6 @@ class PostCreateForm(TestCase):
         self.authorized_user = Client()
         self.authorized_user.force_login(self.user)
 
-
     def test_create_post(self):
         """ Валидная форма создает запись в Post."""
         # Подсчитаем количество записей в Post

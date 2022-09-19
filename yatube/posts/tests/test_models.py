@@ -2,7 +2,7 @@ import tempfile
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase, override_settings
+from django.test import TestCase, override_settings
 
 from ..models import LENGTH_TEXT, Group, Post
 
