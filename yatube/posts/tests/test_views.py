@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -18,14 +19,26 @@ class PostURLTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='author')
-        cls.author = Client()
-        cls.author.force_login(PostURLTests.user)
+
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
         # Создаем группу
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test-group',
             description='Тестовое описание',
-            id=1
+
         )
 
         # Создаем пост от имени пользователя
@@ -33,7 +46,7 @@ class PostURLTests(TestCase):
             author=cls.user,
             text='Тестовый пост',
             group=cls.group,
-            id=1,
+            image=uploaded,
         )
 
     def setUp(self):
@@ -41,8 +54,6 @@ class PostURLTests(TestCase):
         self.user = User.objects.create_user(username='test_user')
         self.authorized_user = Client()
         self.authorized_user.force_login(self.user)
-        self.author = Client()
-        self.author.force_login(PostURLTests.user)
         cache.clear()
 
     def test_pages_guest_client_correct_template(self):
@@ -55,7 +66,7 @@ class PostURLTests(TestCase):
             'posts/group_list.html',
             reverse('posts:profile', kwargs={'username': 'author'}):
             'posts/profile.html',
-            reverse('posts:post_detail', kwargs={'post_id': 1}):
+            reverse('posts:post_detail', kwargs={'post_id': self.post.id}):
             'posts/post_detail.html',
             reverse('posts:profile', kwargs={'username': 'author'}):
             'posts/profile.html',
@@ -77,7 +88,7 @@ class PostURLTests(TestCase):
         # Проверка, при обращении к name вызывается соответствующий HTML-шаблон
         for reverse_name, address in templates_pages_names.items():
             with self.subTest(reverse_name=reverse_name):
-                response = self.author.get(reverse_name)
+                response = self.authorized_user.get(reverse_name)
                 self.assertTemplateUsed(response, address)
 
     def test_views_index_page_show_correct_context(self):
@@ -153,7 +164,7 @@ class PostURLTests(TestCase):
 
     def test_post_edit_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
-        response = self.author.get(reverse(
+        response = self.authorized_user.get(reverse(
             'posts:post_edit',
             args=[self.post.id]
         ))
@@ -268,50 +279,3 @@ class PostURLTests(TestCase):
         response = self.authorized_user.get(reverse('posts:follow_index'))
         self.assertEqual(
             response.context.get('page_obj').object_list.count(), 0)
-
-
-class PaginatorViewsTest(TestCase):
-    """Проверка Paginator."""
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        # Автор поста
-        cls.author = User.objects.create_user(username='author')
-        cls.post_author = Client()
-        cls.post_author.force_login(cls.author)
-        cache.clear()
-        cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='test-slug',
-            description='Тестовое описание',
-        )
-        # Создание 17 постов
-        for i in range(COUNT_TEST_POSTS):
-            Post.objects.bulk_create([Post(author=cls.author,
-                                      text=f'Тестовый пост № {i}',
-                                      group=cls.group)
-                                      ])
-
-    def test_pages_contain_correct_records(self):
-        """Проверка количества постов на первой и второй страницах."""
-        paginator_pages = [
-            reverse('posts:index'),
-            reverse(
-                'posts:group_list', kwargs={'slug': self.group.slug}
-            ),
-            reverse(
-                'posts:profile', kwargs={'username': self.author.username}
-            )
-        ]
-        for url in paginator_pages:
-            with self.subTest(url=url):
-                first_response = self.post_author.get(url)
-                second_response = self.post_author.get((url) + '?page=2')
-                self.assertEqual(len(
-                    first_response.context['page_obj']),
-                    NUMBER_OF_POSTS
-                )
-                self.assertEqual(len(
-                    second_response.context['page_obj']),
-                    COUNT_TEST_POSTS - NUMBER_OF_POSTS
-                )

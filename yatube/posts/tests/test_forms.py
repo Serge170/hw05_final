@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Group, Post
+from posts.models import Group, Post
 
 User = get_user_model()
 
@@ -19,25 +19,9 @@ class PostCreateForm(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
-        picture = (
-            b'\x47\x49\x46\x38\x39\x61\x02\x00'
-            b'\x01\x00\x80\x00\x00\x00\x00\x00'
-            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-            b'\x0A\x00\x3B'
-        )
-        cls.uploaded = SimpleUploadedFile(
-            name='picture.gif',
-            content=picture,
-            content_type='image/gif'
-        )
-
         cls.user = User.objects.create_user(username='author')
-        cls.author = Client()
-        cls.author.force_login(PostCreateForm.user)
-    # Создаем группу
+
+        # Создаем группу
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='test-group',
@@ -49,59 +33,55 @@ class PostCreateForm(TestCase):
             author=cls.user,
             text='Тестовый пост',
             group=cls.group,
-            image=cls.uploaded,
         )
 
     def setUp(self):
         self.guest_client = Client()
         self.authorized_user = Client()
         self.authorized_user.force_login(self.user)
-        self.author = Client()
-        self.author.force_login(PostCreateForm.user)
 
-    def test_post_create(self):
-        """Форма Post создает запись."""
-        # Подсчет количества записей в Post
+
+    def test_create_post(self):
+        """ Валидная форма создает запись в Post."""
+        # Подсчитаем количество записей в Post
         posts_count = Post.objects.count()
-        last_post = Post.objects.all().first()
-        new_post = Post.objects.filter(
-            text='Текст поста из формы',
-            group=self.group.pk,
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00'
+            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+            b'\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
         )
         form_data = {
             'text': 'Текст поста из формы',
             'group': self.group.pk,
             'author': self.user.username,
-            'image': self.post.image,
+            'image': uploaded,
         }
-        # Отправляем POST-запрос
+
         response = self.authorized_user.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True
         )
-        # Проверяем, увеличилось ли число постов
-        self.assertEqual(Post.objects.count(), posts_count + 1)
-        # Проверяем, что создалась запись с заданным слагом
-        self.assertTrue(new_post.exists())
-        self.assertEqual(
-            Post.objects.all().order_by('created').first(),
-            last_post
-        )
         # Проверяем, сработал ли редирект
         self.assertRedirects(response, reverse(
-            'posts:profile',
-            args=[self.user.username]
-        ))
-        new_post = Post.objects.last()
-        self.assertEqual(
-            new_post.author,
-            self.user
-        )
-        self.assertEqual(
-            new_post.group,
-            self.group
-        )
+            'posts:profile', kwargs={'username': 'author'}))
+        # Проверяем, увеличилось ли число постов
+        self.assertEqual(Post.objects.count(), posts_count + 1)
+
+        # Проверяем, что сoдержания поля в словаре соответствуют ожиданиям
+        self.assertTrue(
+            Post.objects.filter(
+                text=form_data['text'],
+                author=self.user,
+                group=self.group.id,
+            ))
 
     def test_edit_post(self):
         """Запись успешно редактируется."""
@@ -121,10 +101,34 @@ class PostCreateForm(TestCase):
             Post.objects.get(pk=self.post.pk).text,
             form_data['text'])
 
-        old_group_response = self.authorized_user.get(
+        group_response = self.authorized_user.get(
             reverse(
                 'group:group_list',
                 args=(self.group.slug, ))
         )
-        self.assertNotEqual(old_group_response, [0]
+        self.assertNotEqual(group_response, [0]
                             )
+
+    def test_authorized_user_follow(self):
+        """Тестирование подписки на автора"""
+        self.author = User.objects.create(username='NoNameAuthor')
+        follow_count_before = self.user.follower.count()
+        self.authorized_user.get(
+            reverse('posts:profile_follow', kwargs={'username': self.author})
+        )
+        self.assertEqual(self.user.follower.count(), follow_count_before + 1)
+        self.authorized_user.get(
+            reverse('posts:profile_unfollow', kwargs={'username': self.author})
+        )
+
+    def test_authorized_user_unfollow(self):
+        """Тестирование отписки на автора"""
+        self.author = User.objects.create(username='NoNameAuthor')
+        follow_count_before = self.user.follower.count()
+        self.authorized_user.get(
+            reverse('posts:profile_follow', kwargs={'username': self.author})
+        )
+        self.authorized_user.get(
+            reverse('posts:profile_unfollow', kwargs={'username': self.author})
+        )
+        self.assertEqual(self.user.follower.count(), follow_count_before)

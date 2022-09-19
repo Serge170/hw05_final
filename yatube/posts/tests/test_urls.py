@@ -3,9 +3,8 @@ from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from posts.models import Group, Post, User
 
-from ..models import Group, Post
+from ..models import Group, Post, User
 
 User = get_user_model()
 
@@ -18,9 +17,7 @@ class PostURLTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='author')
-        cls.author = Client()
-        cls.author.force_login(PostURLTests.user)
-
+        cls.following = User.objects.create_user(username='following')
         # Создаем группу
         cls.group = Group.objects.create(
             title='Тестовая группа',
@@ -39,8 +36,6 @@ class PostURLTests(TestCase):
         self.user = User.objects.create_user(username='test_user')
         self.authorized_user = Client()
         self.authorized_user.force_login(self.user)
-        self.author = Client()
-        self.author.force_login(PostURLTests.user)
 
     def test_urls_for_all(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -48,8 +43,13 @@ class PostURLTests(TestCase):
             '/': ('posts/index', HTTPStatus.OK),
             '/group/test-group/': ('posts/group_list', HTTPStatus.OK),
             '/profile/author/': ('posts/profile', HTTPStatus.OK),
-            f'/posts/{self.post.id}/': ('posts/post_detail', HTTPStatus.OK),
+            f'/posts/{self.post.pk}/': ('posts/post_detail', HTTPStatus.OK),
             '/unixisting_page/': ('', HTTPStatus.NOT_FOUND),
+            '/follow/': ('follow_index', HTTPStatus.FOUND),
+            f'/profile/{self.following.username}/follow/':
+            ('profile_follow', HTTPStatus.FOUND),
+            f'/profile/{self.following.username}/unfollow/':
+            ('profile_unfollow', HTTPStatus.FOUND),
         }
 
         for address, (template, status_code) in templates_url_all.items():
@@ -60,13 +60,13 @@ class PostURLTests(TestCase):
     def test_urls_author(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_url_author = {
-            f'/posts/{self.post.id}/edit/':
+            f'/posts/{self.post.pk}/edit/':
             ('posts/create_post.html', HTTPStatus.OK),
         }
 
         for address, (template, status_code) in templates_url_author.items():
             with self.subTest(address=address):
-                response = self.author.get(address)
+                response = self.authorized_user.get(address)
                 self.assertEqual(response.status_code, status_code)
 
     def test_urls_authorized_client(self):
@@ -111,7 +111,7 @@ class PostURLTests(TestCase):
             f'/auth/login/?next=/posts/{self.post.pk}/comment/'
         )
 
-    def test_сommenting_is_not_available_to_an_anonymous_user(self):
+    def test_commenting_guest_client(self):
         """Комментирование недоступно анонимному пользователю."""
         form_comment_data = {
             'text': 'Новый комментарий',
@@ -125,3 +125,10 @@ class PostURLTests(TestCase):
         self.assertEqual(
             response_not_authorized.status_code,
             HTTPStatus.FOUND.value)
+
+        # Временная запись.
+        # Виктор, тесты на подписку/отписку на автора
+        # находятся в файле test_views.py  в функцих:
+        # test_authorized_user_follow
+        # test_authorized_user_unfollow
+        # проверка доступности страниц в текущем файле, 50 строка
