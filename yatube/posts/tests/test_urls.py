@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 from http import HTTPStatus
 
@@ -18,6 +19,11 @@ class PostURLTests(TestCase):
     """Проверка доступности страниц и названий шаблонов приложения posts.
     учитывается уровень доступа. Несуществующая страница возвращает ошибку 404.
     """
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 
 from django import forms
@@ -21,6 +22,11 @@ TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostURLTests(TestCase):
     """ Создаем тестовую среду"""
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
