@@ -1,11 +1,17 @@
+import tempfile
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase, override_settings
 
 from ..models import LENGTH_TEXT, Group, Post
 
 User = get_user_model()
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostModelTest(TestCase):
     """ Проверка моделей."""
     @classmethod

@@ -1,14 +1,19 @@
+import tempfile
 from http import HTTPStatus
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from ..models import Group, Post, User
 
 User = get_user_model()
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostURLTests(TestCase):
     """Проверка доступности страниц и названий шаблонов приложения posts.
     учитывается уровень доступа. Несуществующая страница возвращает ошибку 404.
